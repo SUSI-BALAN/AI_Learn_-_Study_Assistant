@@ -1,0 +1,1 @@
+"""Domain-focused MongoDB repositories."""
