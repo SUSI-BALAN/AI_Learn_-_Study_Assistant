@@ -48,10 +48,12 @@ Install and prepare:
 ```powershell
 ollama pull qwen2.5:3b
 ollama pull tinyllama
-Copy-Item .env.example .env
 python -m pip install -r requirements.txt
 python main.py
 ```
+
+`.env` is optional. Create it from `.env.example` only when you want to override
+the default model, memory path, ChromaDB path, or language settings.
 
 If Ollama is installed but not running, start it in another terminal:
 
@@ -152,4 +154,3 @@ If SQLite is `FAILED`, make sure the project folder is writable and restart:
 ```powershell
 python main.py
 ```
-
