@@ -1,7 +1,7 @@
 """Manual local-service health report using the application service boundaries."""
 
 from app.ai.ollama_client import OllamaClient
-from app.database.mongodb import MongoDatabase
+from app.database.sqlite_database import SQLiteDatabase
 from app.rag.vector_store import VectorStore, VectorStoreError
 from config import Settings
 
@@ -14,9 +14,9 @@ def verify_setup() -> None:
     print(f"[{'VERIFIED' if ollama.reachable else 'FAILED'}] Ollama connection")
     print(f"[{'VERIFIED' if ollama.model_available else 'FAILED'}] Model: {ollama.active_model or settings.ollama_model}")
 
-    database = MongoDatabase(settings.mongodb_uri, settings.mongodb_database)
-    mongo = database.connect()
-    print(f"[{'VERIFIED' if mongo.connected else 'FAILED'}] MongoDB")
+    database = SQLiteDatabase(settings.sqlite_path)
+    sqlite = database.connect()
+    print(f"[{'VERIFIED' if sqlite.available else 'FAILED'}] SQLite: {settings.sqlite_path}")
     database.close()
 
     try:

@@ -1,7 +1,7 @@
 """Consistent terminal output formatting."""
 
 from app.ai.ollama_client import OllamaHealth
-from app.database.mongodb import MongoHealth
+from app.database.sqlite_database import SQLiteHealth
 from app.rag.vector_store import VectorStoreHealth
 from config import Settings
 
@@ -9,7 +9,7 @@ from config import Settings
 def banner(
     settings: Settings,
     health: OllamaHealth,
-    mongo_health: MongoHealth,
+    sqlite_health: SQLiteHealth,
     vector_health: VectorStoreHealth,
 ) -> str:
     ollama = "VERIFIED" if health.reachable else "FAILED"
@@ -17,8 +17,8 @@ def banner(
     model_name = health.active_model or settings.ollama_model
     if health.using_fallback:
         model = "WARNING - fallback"
-    internet = "WARNING - disabled" if not settings.internet_search_enabled else "WARNING - enabled"
-    mongodb = "VERIFIED" if mongo_health.connected else "WARNING - unavailable"
+    sqlite = "VERIFIED" if sqlite_health.available else "FAILED"
+    memory = "VERIFIED" if sqlite_health.available else "WARNING - session only"
     chroma = f"VERIFIED ({vector_health.count} chunks)" if vector_health.available else "FAILED"
     return f"""========================================================
        AI LEARNING & STUDY ASSISTANT
@@ -28,9 +28,9 @@ def banner(
 Python      : VERIFIED
 Ollama      : {ollama}
 Model       : {model_name} ({model})
-MongoDB     : {mongodb}
+SQLite      : {sqlite}
 ChromaDB    : {chroma}
-Internet    : {internet}
+Memory      : {memory}
 Language    : {settings.default_language}
 
 Type /help to view commands."""
@@ -39,7 +39,15 @@ Type /help to view commands."""
 def help_text() -> str:
     return """Commands:
   /help   Show this help
+  /setup  Show beginner setup steps for Ollama and local models
+  /status Show current startup health again
+  /memory Show important stored memory facts
+  /history Show recent persisted conversation messages
+  /conversations Show previous conversation sessions
+  /profile Show the stored local user profile
   /clear  Clear current conversation memory
   /exit   Exit safely
+
+You can also type bye, goodbye, leave, quit, exit, or close to exit.
 
 Or type any learning question to chat with the local model."""

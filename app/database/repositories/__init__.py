@@ -1,1 +1,1 @@
-"""Domain-focused MongoDB repositories."""
+"""SQLite repository layer."""

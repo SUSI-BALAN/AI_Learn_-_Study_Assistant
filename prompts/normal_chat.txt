@@ -264,9 +264,7 @@ Only use previous messages when relevant.
 
 Never let an unrelated previous answer control the next response.
 
-MongoDB may store full conversation history.
-
-But only send the latest relevant conversation context to the LLM.
+Only send the latest relevant conversation context to the LLM.
 
 Recommended:
 Maximum 4-6 recent relevant turns.
@@ -417,7 +415,6 @@ NORMAL_CHAT must NOT automatically receive:
 - RAG instructions
 - uploaded document context
 - vector database information
-- MongoDB implementation details
 - document search instructions
 - quiz prompts
 - planner prompts

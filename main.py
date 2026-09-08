@@ -4,7 +4,7 @@ import sys
 
 from app.ai.ollama_client import OllamaClient
 from app.cli.terminal import TerminalApplication
-from app.database.mongodb import MongoDatabase
+from app.database.sqlite_database import SQLiteDatabase
 from app.rag.vector_store import VectorStore, VectorStoreError, VectorStoreHealth
 from config import Settings
 
@@ -18,7 +18,8 @@ def main() -> None:
     client = OllamaClient(
         settings.ollama_host, settings.ollama_model, settings.ollama_fallback_model
     )
-    database = MongoDatabase(settings.mongodb_uri, settings.mongodb_database)
+    sqlite_database = SQLiteDatabase(settings.sqlite_path)
+    sqlite_health = sqlite_database.connect()
     vector_store = None
     try:
         vector_store = VectorStore(settings.chroma_path, settings.chroma_collection)
@@ -26,10 +27,11 @@ def main() -> None:
     except VectorStoreError as exc:
         vector_health = VectorStoreHealth(False, detail=str(exc))
     try:
-        database.connect()
-        TerminalApplication(settings, client, database, vector_health, vector_store).run()
+        TerminalApplication(
+            settings, client, sqlite_database, sqlite_health, vector_health, vector_store
+        ).run()
     finally:
-        database.close()
+        sqlite_database.close()
         if vector_store is not None:
             vector_store.close()
 

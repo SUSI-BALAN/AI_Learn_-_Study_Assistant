@@ -5,6 +5,8 @@ from app.ai.language_detector import ReplyLanguage, detect_reply_language
 from app.ai.prompts import NORMAL_CHAT_PROMPT, RAG_PROMPT
 from app.ai.response_style import ResponseStyle, detect_response_style
 from app.ai.router import Intent, route_intent
+from app.database.sqlite_database import SQLiteDatabase
+from app.memory.memory_manager import MemoryManager
 from app.memory.short_term import ShortTermMemory
 from app.rag.retriever import RetrievedChunk
 
@@ -70,6 +72,12 @@ class AdaptiveRouterTests(unittest.TestCase):
             "what does my syllabus say",
         ):
             self.assertEqual(route_intent(message), Intent.RAG_SEARCH)
+        for message in (
+            "what am I currently learning?",
+            "what did we discuss about Python loops?",
+            "what is my weakest topic?",
+        ):
+            self.assertEqual(route_intent(message), Intent.MEMORY_SEARCH)
         self.assertEqual(route_intent("2 + 5 * 10"), Intent.CALCULATOR)
 
     def test_question_styles_are_adaptive(self) -> None:
@@ -180,6 +188,26 @@ class AdaptiveRouterTests(unittest.TestCase):
         self.assertEqual(response.intent, Intent.CALCULATOR)
         self.assertEqual(response.text, "52")
         self.assertEqual(client.calls, [])
+
+    def test_memory_search_is_deterministic_and_does_not_call_model(self) -> None:
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as directory:
+            database = SQLiteDatabase(Path(directory) / "assistant.db")
+            database.connect()
+            manager = MemoryManager(ShortTermMemory(), database.connection)
+            try:
+                manager.start()
+                manager.add_turn("I am learning DBMS.", "Stored.")
+                client = FakeClient("wrong")
+                response = LearningAgent(client, manager).respond("What am I currently learning?")
+                self.assertEqual(response.intent, Intent.MEMORY_SEARCH)
+                self.assertIn("DBMS", response.text)
+                self.assertEqual(client.calls, [])
+            finally:
+                manager.finish()
+                database.close()
 
     def test_empty_rag_store_sends_no_context_to_model(self) -> None:
         client = FakeClient()

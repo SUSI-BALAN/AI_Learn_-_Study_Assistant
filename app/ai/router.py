@@ -9,6 +9,7 @@ from enum import Enum
 class Intent(str, Enum):
     NORMAL_CHAT = "NORMAL_CHAT"
     RAG_SEARCH = "RAG_SEARCH"
+    MEMORY_SEARCH = "MEMORY_SEARCH"
     CALCULATOR = "CALCULATOR"
 
 
@@ -29,6 +30,18 @@ _GREETINGS = {
     "good morning", "good afternoon", "good evening", "how are you",
 }
 
+_MEMORY_PATTERNS = tuple(
+    re.compile(pattern, re.IGNORECASE)
+    for pattern in (
+        r"\bwhat am i (?:currently )?(?:learning|studying)\b",
+        r"\bwhat did we discuss\b",
+        r"\bwhat do you remember\b",
+        r"\bmy (?:stored )?(?:memory|profile|preference|history)\b",
+        r"\bwhat is my weakest\b",
+        r"\bweakest .*topic\b",
+    )
+)
+
 _ASSISTANT_STATUS_QUESTIONS = {
     "what are you doing", "what do you do", "what are you here for",
 }
@@ -37,6 +50,8 @@ _ASSISTANT_STATUS_QUESTIONS = {
 def route_intent(text: str) -> Intent:
     if any(pattern.search(text) for pattern in _RAG_PATTERNS):
         return Intent.RAG_SEARCH
+    if any(pattern.search(text) for pattern in _MEMORY_PATTERNS):
+        return Intent.MEMORY_SEARCH
     if _is_arithmetic_expression(text):
         return Intent.CALCULATOR
     return Intent.NORMAL_CHAT

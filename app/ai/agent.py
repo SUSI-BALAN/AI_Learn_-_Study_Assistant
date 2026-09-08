@@ -20,6 +20,7 @@ from app.ai.response_validator import (
 )
 from app.ai.response_style import detect_response_style, generation_options, response_instruction
 from app.ai.router import Intent, is_greeting, route_intent
+from app.memory.memory_manager import MemoryManager
 from app.memory.short_term import ShortTermMemory
 from app.rag.citations import format_citation
 from app.rag.rag_service import RagService
@@ -38,7 +39,7 @@ class LearningAgent:
     def __init__(
         self,
         client: OllamaClient,
-        memory: ShortTermMemory,
+        memory: ShortTermMemory | MemoryManager,
         rag_service: RagService | None = None,
         relevant_history_turns: int = 4,
     ) -> None:
@@ -51,6 +52,8 @@ class LearningAgent:
         intent = route_intent(user_input)
         if intent is Intent.CALCULATOR:
             return self._calculate(user_input)
+        if intent is Intent.MEMORY_SEARCH:
+            return self._memory_search(user_input)
         if intent is Intent.NORMAL_CHAT:
             return self._normal_chat(user_input)
         return self._rag_chat(user_input)
@@ -60,6 +63,7 @@ class LearningAgent:
         relevant_history = self.memory.relevant_messages(
             user_input, max_turns=self.relevant_history_turns
         )
+        long_term_context = _long_term_context(self.memory, user_input)
         language = detect_reply_language(user_input)
         model_input = (
             f"{user_input}\n\n"
@@ -67,7 +71,9 @@ class LearningAgent:
             f"{language_instruction(language)} "
             "Silently check technical facts and code before answering; omit uncertain claims."
         )
-        messages = build_normal_chat_context(model_input, relevant_history)
+        messages = build_normal_chat_context(
+            model_input, relevant_history, long_term_context
+        )
         options = generation_options(style)
         response = self.client.chat(messages, options=options)
         required_count = requested_structure_count(user_input, style)
@@ -98,16 +104,32 @@ class LearningAgent:
             result = str(exc)
         return AgentResponse(result, Intent.CALCULATOR)
 
+    def _memory_search(self, user_input: str) -> AgentResponse:
+        if isinstance(self.memory, MemoryManager):
+            return AgentResponse(self.memory.answer_memory_question(user_input), Intent.MEMORY_SEARCH)
+        return AgentResponse("Long-term memory is unavailable.", Intent.MEMORY_SEARCH)
+
     def _rag_chat(self, user_input: str) -> AgentResponse:
         if self.rag_service is None or self.rag_service.vector_store.health().count == 0:
             return AgentResponse(INSUFFICIENT_EVIDENCE, Intent.RAG_SEARCH)
         chunks = self.rag_service.search(user_input, top_k=4, minimum_score=0.25)
         if not chunks:
             return AgentResponse(INSUFFICIENT_EVIDENCE, Intent.RAG_SEARCH)
-        messages = build_rag_context(user_input, self.memory.messages(), chunks)
+        messages = build_rag_context(
+            user_input,
+            self.memory.messages(),
+            chunks,
+            _long_term_context(self.memory, user_input),
+        )
         response = self.client.chat(messages)
         if not is_safe_response(response):
             return AgentResponse(INSUFFICIENT_EVIDENCE, Intent.RAG_SEARCH)
         sources = list(dict.fromkeys(format_citation(chunk.metadata) for chunk in chunks))
         source_text = "\n".join(f"- {source}" for source in sources)
         return AgentResponse(f"{response}\n\nSources:\n{source_text}", Intent.RAG_SEARCH)
+
+
+def _long_term_context(memory: ShortTermMemory | MemoryManager, user_input: str) -> str:
+    if isinstance(memory, MemoryManager):
+        return memory.relevant_long_term_context(user_input)
+    return ""

@@ -21,7 +21,7 @@ def is_safe_response(response: str) -> bool:
 
 
 def mentions_unrequested_internal_topic(response: str, user_input: str) -> bool:
-    topics = ("rag", "mongodb", "chromadb", "system prompt", "internal prompt", "uploaded document")
+    topics = ("rag", "chromadb", "system prompt", "internal prompt", "uploaded document")
     answer = response.casefold()
     question = user_input.casefold()
     return any(topic in answer and topic not in question for topic in topics)

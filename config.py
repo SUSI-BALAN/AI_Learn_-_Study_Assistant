@@ -24,8 +24,7 @@ class Settings:
     ollama_host: str
     ollama_model: str
     ollama_fallback_model: str
-    mongodb_uri: str
-    mongodb_database: str
+    sqlite_path: Path
     chroma_path: Path
     chroma_collection: str
     documents_path: Path
@@ -52,8 +51,7 @@ class Settings:
             ollama_host=os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/"),
             ollama_model=os.getenv("OLLAMA_MODEL", "qwen2.5:3b"),
             ollama_fallback_model=os.getenv("OLLAMA_FALLBACK_MODEL", "tinyllama"),
-            mongodb_uri=os.getenv("MONGODB_URI", "mongodb://127.0.0.1:27017"),
-            mongodb_database=os.getenv("MONGODB_DATABASE", "ai_learning_assistant"),
+            sqlite_path=Path(os.getenv("SQLITE_PATH", "./data/assistant.db")),
             chroma_path=Path(os.getenv("CHROMA_PATH", "./data/chroma")),
             chroma_collection=os.getenv("CHROMA_COLLECTION", "study_materials"),
             documents_path=Path(os.getenv("DOCUMENTS_PATH", "./data/documents")),

@@ -1,1 +1,1 @@
-"""MongoDB access layer."""
+"""Local SQLite persistence layer."""
